@@ -1,116 +1,57 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-interface CanvasProps {
-    width: number;
-    height: number;
-};
 
-type Coordinate = {
-    x: number;
-    y: number;
-};
+function CanvasOne(){
 
-function CanvasOne({ width, height }: CanvasProps){
-
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isPainting, setIsPainting] = useState(false);
-    const [mousePosition, setMousePosition] = useState<Coordinate | undefined>(undefined);
-
-    const startPaint = useCallback((event: MouseEvent) => {
-        const coordinates = getCoordinates(event);
-        if (coordinates) {
-            setMousePosition(coordinates);
-            setIsPainting(true);
-        }
-    }, []);
+    const canvasRef = useRef(null);
+    const contextRef = useRef(null);
+    const [isDrawing, setIsDrawing] = useState(false);
 
     useEffect(() => {
-        if (!canvasRef.current) {
-            return;
-        }
-        const canvas: HTMLCanvasElement = canvasRef.current;
-        canvas.addEventListener('mousedown', startPaint);
-        return () => {
-            canvas.removeEventListener('mousedown', startPaint);
-        };
-    }, [startPaint]);
+        const canvas = canvasRef.current;
+        canvas.width = window.innerWidth * 2;
+        canvas.height = window.innerHeight * 2;
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
 
-    const paint = useCallback(
-        (event: MouseEvent) => {
-            if (isPainting) {
-                const newMousePosition = getCoordinates(event);
-                if (mousePosition && newMousePosition) {
-                    drawLine(mousePosition, newMousePosition);
-                    setMousePosition(newMousePosition);
-                }
-            }
-        },
-        [isPainting, mousePosition]
-    );
-
-    useEffect(() => {
-        if (!canvasRef.current) {
-            return;
-        }
-        const canvas: HTMLCanvasElement = canvasRef.current;
-        canvas.addEventListener('mousemove', paint);
-        return () => {
-            canvas.removeEventListener('mousemove', paint);
-        };
-    }, [paint]);
-
-    const exitPaint = useCallback(() => {
-        setIsPainting(false);
-        setMousePosition(undefined);
-    }, []);
-
-    useEffect(() => {
-        if (!canvasRef.current) {
-            return;
-        }
-        const canvas: HTMLCanvasElement = canvasRef.current;
-        canvas.addEventListener('mouseup', exitPaint);
-        canvas.addEventListener('mouseleave', exitPaint);
-        return () => {
-            canvas.removeEventListener('mouseup', exitPaint);
-            canvas.removeEventListener('mouseleave', exitPaint);
-        };
-    }, [exitPaint]);
-
-    const getCoordinates = (event: MouseEvent): Coordinate | undefined => {
-        if (!canvasRef.current) {
-            return;
-        }
-
-        const canvas: HTMLCanvasElement = canvasRef.current;
-        return { x: event.pageX - canvas.offsetLeft, y: event.pageY - canvas.offsetTop };
-    };
-
-    const drawLine = (originalMousePosition: Coordinate, newMousePosition: Coordinate) => {
-        if (!canvasRef.current) {
-            return;
-        }
-        const canvas: HTMLCanvasElement = canvasRef.current;
         const context = canvas.getContext('2d');
-        if (context) {
-            context.strokeStyle = 'red';
-            context.lineJoin = 'round';
-            context.lineWidth = 5;
+        context.scale(2,2);
+        context.lineCap = 'round';
+        context.strokeStyle = 'black';
+        context.lineWidth = 5;
+        contextRef.current = context;
 
-            context.beginPath();
-            context.moveTo(originalMousePosition.x, originalMousePosition.y);
-            context.lineTo(newMousePosition.x, newMousePosition.y);
-            context.closePath();
+    }, [])
 
-            context.stroke();
+    const startDrawing = ({nativeEvent}) => {
+        const { offsetX, offsetY } = nativeEvent;
+        contextRef.current.beginPath();
+        contextRef.current.moveTo(offsetX, offsetY);
+        setIsDrawing(true)
+    }
+
+    const finishDrawing = () => {
+        contextRef.current.closePath();
+        setIsDrawing(false)
+    }
+
+    const draw = ({nativeEvent}) => {
+        if(!isDrawing){
+            return
         }
-    };
+        const { offsetX, offsetY } = nativeEvent;
+        contextRef.current.lineTo(offsetX, offsetY);
+        contextRef.current.stroke()
+    }
 
-    return <canvas ref={canvasRef} height={height} width={width} />;
-};
-CanvasOne.defaultProps = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-};
+    return( 
+    <canvas
+        onMouseDown={startDrawing}
+        onMouseUp={finishDrawing}
+        onMouseMove={draw}
+        ref={canvasRef}
+    />
+    );
+}
 
 export default CanvasOne;
