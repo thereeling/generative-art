@@ -8,6 +8,8 @@ const useCanvas = (draw, options={}) => {
     
     const canvas = canvasRef.current;
     const context = canvas.getContext(options.context || '2d');
+    // canvas.width = window.innerWidth;
+    // canvas.height = window.innerHeight;
     let frameCount = 0;
     let animationFrameId;
     

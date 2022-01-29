@@ -1,61 +1,116 @@
-import React from 'react';
-import useCanvas from '../utils/useCanvas';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-function CanvasOne(props){
-   
-    // const canvasOneRef = useRef(null);
-    // const [MousePosition, setMousePosition] = useState({
-    //     left: 0,
-    //     top: 0
-    // })
+interface CanvasProps {
+    width: number;
+    height: number;
+};
 
-    // function handleMouseMove(e) {
-    //     setMousePosition({
-    //         left: e.pageX, top: e.pageY
-    //     });
-    // }
+type Coordinate = {
+    x: number;
+    y: number;
+};
 
+function CanvasOne({ width, height }: CanvasProps){
 
-    // useEffect(() => {
-    //     /** @type {HTMLCanvasElement} */
-    //     const canvas = canvasOneRef.current;
-    //     const ctx = canvas.getContext('2d');
-    //     canvas.width = window.innerWidth;
-    //     canvas.height = window.innerHeight;
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isPainting, setIsPainting] = useState(false);
+    const [mousePosition, setMousePosition] = useState<Coordinate | undefined>(undefined);
 
-    //     class Root{
-    //         constructor(x, y){
-    //             this.x =x;
-    //             this.y =y;
-    //             this.speedX = Math.random() * 4 - 2;
-    //             this.speedY = Math.random() * 4 - 2;
-    //             this.maxSize = Math.random() * 7 + 5;
-    //             this.size = Math.random() * 1 + 2;
-    //         }
-    //         update(){
-    //             this.x += this.speedX;
-    //             this.y += this.speedY;
-    //             this.size += 0.1;
-    //             if(this.size < this.maxSize){
-    //                 ctx.beginPath();
-    //                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-    //                 ctx.fillStyle = 'hsl(140,100%,50%)';
-    //                 ctx.fill();
-    //                 ctx.stroke();
-    //             }
-    //         }
-    //     }
+    const startPaint = useCallback((event: MouseEvent) => {
+        const coordinates = getCoordinates(event);
+        if (coordinates) {
+            setMousePosition(coordinates);
+            setIsPainting(true);
+        }
+    }, []);
 
-    // }, [])
-    
-    const { draw, options, ...rest } = props;
-    const { context, ...moreConfig } = {options};
-    const canvasRef = useCanvas(draw, {context});
+    useEffect(() => {
+        if (!canvasRef.current) {
+            return;
+        }
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        canvas.addEventListener('mousedown', startPaint);
+        return () => {
+            canvas.removeEventListener('mousedown', startPaint);
+        };
+    }, [startPaint]);
 
+    const paint = useCallback(
+        (event: MouseEvent) => {
+            if (isPainting) {
+                const newMousePosition = getCoordinates(event);
+                if (mousePosition && newMousePosition) {
+                    drawLine(mousePosition, newMousePosition);
+                    setMousePosition(newMousePosition);
+                }
+            }
+        },
+        [isPainting, mousePosition]
+    );
 
-    return (
-        <canvas  ref={canvasRef} {...rest}/>
-    )
-}
+    useEffect(() => {
+        if (!canvasRef.current) {
+            return;
+        }
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        canvas.addEventListener('mousemove', paint);
+        return () => {
+            canvas.removeEventListener('mousemove', paint);
+        };
+    }, [paint]);
+
+    const exitPaint = useCallback(() => {
+        setIsPainting(false);
+        setMousePosition(undefined);
+    }, []);
+
+    useEffect(() => {
+        if (!canvasRef.current) {
+            return;
+        }
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        canvas.addEventListener('mouseup', exitPaint);
+        canvas.addEventListener('mouseleave', exitPaint);
+        return () => {
+            canvas.removeEventListener('mouseup', exitPaint);
+            canvas.removeEventListener('mouseleave', exitPaint);
+        };
+    }, [exitPaint]);
+
+    const getCoordinates = (event: MouseEvent): Coordinate | undefined => {
+        if (!canvasRef.current) {
+            return;
+        }
+
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        return { x: event.pageX - canvas.offsetLeft, y: event.pageY - canvas.offsetTop };
+    };
+
+    const drawLine = (originalMousePosition: Coordinate, newMousePosition: Coordinate) => {
+        if (!canvasRef.current) {
+            return;
+        }
+        const canvas: HTMLCanvasElement = canvasRef.current;
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.strokeStyle = 'red';
+            context.lineJoin = 'round';
+            context.lineWidth = 5;
+
+            context.beginPath();
+            context.moveTo(originalMousePosition.x, originalMousePosition.y);
+            context.lineTo(newMousePosition.x, newMousePosition.y);
+            context.closePath();
+
+            context.stroke();
+        }
+    };
+
+    return <canvas ref={canvasRef} height={height} width={width} />;
+};
+CanvasOne.defaultProps = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+};
 
 export default CanvasOne;
