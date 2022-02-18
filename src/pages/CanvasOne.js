@@ -18,10 +18,15 @@ function CanvasOne(){
         context.scale(2,2);
         context.lineCap = 'round';
         context.strokeStyle = 'black';
-        context.lineWidth = 5;
+        context.lineWidth = 2;
         contextRef.current = context;
 
     }, [])
+
+    const animate = () => {
+        contextRef.current.lineTo(400 + Math.sin(0.1) * 10, 200);
+        console.log('animating');
+    }
 
     const startDrawing = ({nativeEvent}) => {
         const { offsetX, offsetY } = nativeEvent;
@@ -40,8 +45,10 @@ function CanvasOne(){
             return
         }
         const { offsetX, offsetY } = nativeEvent;
-        contextRef.current.lineTo(offsetX, offsetY);
+        contextRef.current.lineTo(offsetX, offsetY);        
         contextRef.current.stroke()
+        animate();
+        
     }
 
     return( 
