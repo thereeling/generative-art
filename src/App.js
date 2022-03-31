@@ -3,6 +3,8 @@ import Nav from './components/Nav';
 import CanvasOne from './pages/CanvasOne';
 
 
+// This is a comment i made from my Linux system!
+
 // function resizeCanvas(canvas) {
 //   const { width, height } = canvas.getBoundingClientRect()
 
